@@ -16,7 +16,7 @@ $data = json_decode($input, true);
 
 if (!$data || !isset($data['model'])) {
     $data = [
-        "model" => "gpt-3.5-turbo",
+        "model" => "gpt-4o-mini",
         "messages" => [
             ["role" => "user", "content" => "Hola, ¿estás funcionando correctamente?"]
         ]
