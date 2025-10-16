@@ -1,35 +1,49 @@
 <?php
-// === PROXY PHP PARA OPENAI ===
-// Evita bloqueo de salida desde tu hosting local
+header("Content-Type: application/json");
 
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
+// Leer la clave desde la variable de entorno
+$api_key = getenv("OPENAI_API_KEY");
 
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    http_response_code(200);
+if (!$api_key) {
+    echo json_encode(["error" => "No se encontró la variable OPENAI_API_KEY en el entorno"]);
+    http_response_code(500);
     exit;
 }
 
+// Leer el cuerpo del POST
 $input = file_get_contents("php://input");
+$data = json_decode($input, true);
 
+if (!$data || !isset($data['model'])) {
+    $data = [
+        "model" => "gpt-3.5-turbo",
+        "messages" => [
+            ["role" => "user", "content" => "Hola, ¿estás funcionando correctamente?"]
+        ]
+    ];
+}
+
+// Inicializar cURL para la API de OpenAI
 $ch = curl_init("https://api.openai.com/v1/chat/completions");
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    "Content-Type: application/json",
-    "Authorization: Bearer " . getenv("OPENAI_API_KEY")
+
+curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
+    CURLOPT_HTTPHEADER => [
+        "Content-Type: application/json",
+        "Authorization: Bearer $api_key"
+    ],
+    CURLOPT_POSTFIELDS => json_encode($data)
 ]);
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, $input);
 
 $response = curl_exec($ch);
-$err = curl_error($ch);
-curl_close($ch);
 
-if ($err) {
-    http_response_code(500);
-    echo json_encode(["error" => $err]);
+if (curl_errno($ch)) {
+    echo json_encode(["error" => curl_error($ch)]);
 } else {
+    http_response_code(curl_getinfo($ch, CURLINFO_HTTP_CODE));
     echo $response;
 }
+
+curl_close($ch);
 ?>
