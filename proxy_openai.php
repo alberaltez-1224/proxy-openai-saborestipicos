@@ -1,66 +1,38 @@
 <?php
-// ======================================
-// 🌐 PROXY PHP PARA OPENAI - SABORES TÍPICOS
-// Versión: GPT-4o-mini optimizada (ultra barata)
-// ======================================
-
-header("Content-Type: application/json");
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// 🔑 Leer la clave desde variable de entorno
-$api_key = getenv("OPENAI_API_KEY");
+$proxy_url = "https://proxy-openai-saborestipicos.onrender.com/proxy_openai.php";
 
-if (!$api_key) {
-    http_response_code(500);
-    echo json_encode(["error" => "No se encontró la variable OPENAI_API_KEY en el entorno"]);
-    exit;
-}
+$data = [
+    "model" => "gpt-3.5-turbo",
+    "messages" => [
+        ["role" => "user", "content" => "Hola, ¿cómo estás?"]
+    ]
+];
 
-// 📨 Leer el cuerpo del POST
-$input = file_get_contents("php://input");
-$data = json_decode($input, true);
+$options = [
+    "http" => [
+        "method"  => "POST",
+        "header"  => "Content-Type: application/json\r\n",
+        "content" => json_encode($data),
+        "timeout" => 30,
+        "ignore_errors" => true
+    ]
+];
 
-// Si no hay datos, usar un ejemplo de prueba
-if (!$data || !isset($data['messages'])) {
-    $data = [
-        "model" => "gpt-4o-mini",
-        "max_tokens" => 300,
-        "messages" => [
-            ["role" => "system", "content" => "Eres un asistente SEO experto en frutas, bienestar y oficinas en Madrid."],
-            ["role" => "user", "content" => "Hola, ¿estás funcionando correctamente?"]
-        ]
-    ];
+$context  = stream_context_create($options);
+$response = @file_get_contents($proxy_url, false, $context);
+
+echo "<pre>";
+
+if ($response === FALSE) {
+    echo "⚠️ Error al conectar con el proxy. \n\n";
+    print_r($http_response_header ?? "Sin cabeceras HTTP");
 } else {
-    // Asegurarse de usar el modelo correcto
-    $data["model"] = "gpt-4o-mini";
-    if (!isset($data["max_tokens"])) $data["max_tokens"] = 300;
+    echo "✅ Respuesta del proxy:\n\n";
+    print_r($response);
 }
 
-// 🔗 Llamada a la API de OpenAI
-$ch = curl_init("https://api.openai.com/v1/chat/completions");
-curl_setopt_array($ch, [
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_POST => true,
-    CURLOPT_HTTPHEADER => [
-        "Content-Type: application/json",
-        "Authorization: Bearer $api_key"
-    ],
-    CURLOPT_POSTFIELDS => json_encode($data),
-    CURLOPT_TIMEOUT => 60
-]);
-
-$response = curl_exec($ch);
-$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$error = curl_error($ch);
-curl_close($ch);
-
-// 🧾 Mostrar resultado
-if ($error) {
-    http_response_code(500);
-    echo json_encode(["error" => $error]);
-} else {
-    http_response_code($http_code);
-    echo $response;
-}
+echo "</pre>";
 ?>
