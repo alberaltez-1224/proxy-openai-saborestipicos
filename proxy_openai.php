@@ -17,7 +17,7 @@ $ch = curl_init("https://api.openai.com/v1/chat/completions");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
     "Content-Type: application/json",
-    "Authorization: Bearer " . getenv("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")
+    "Authorization: Bearer " . getenv("OPENAI_API_KEY")
 ]);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, $input);
